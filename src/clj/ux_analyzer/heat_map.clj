@@ -1,6 +1,7 @@
 (ns ux-analyzer.heat-map
   (:use [mikera.image.core]
-        [mikera.image.colours])
+        [mikera.image.colours]
+        [mikera.image.spectrum])
   (:import [Math])
   (:require [clojure.core.reducers :as r]))
 
@@ -17,10 +18,10 @@
 
 (defn get-neighbour-coords
   [x y width height]
-  (for  [ny (range (- y 1) (+ y 2))
-         nx (range (- x 1) (+ x 2))
-         :when (and (not (and (= nx x) (= ny y))))]
-      [nx ny]))
+  [[(- x 1) y]
+   [(+ x 1) y]
+   [x (- y 1)]
+   [x (+ y 1)]])
 
 (defn- all-coords-with-neighbours
   [width height]
@@ -34,17 +35,8 @@
             (let [v (get-in hm [x y] 0)]
               (if (> v 0) (inc count) count)))
           0 coords))                              
-;   
-; (defn improved-round
-;   [hm all-coords]
-;   (r/fold (fn [acc [x y neighbours]]
-;             (let [n (count-pos-coords neighbours hm)]
-;               (update-in acc [x y] #(if (= % 0) (+ % n) (+ % n 1)))))
-;           hm
-;           all-coords))
-;           
-          
-(defn improved-round
+
+(defn round
   [hm all-coords]
   (reduce (fn [acc [x y neighbours]]
             (let [n (count-pos-coords neighbours hm)]
@@ -53,38 +45,49 @@
           all-coords))
 
 
-(defn improved-head-map
+(defn head-map-vec
   [width height coords rounds]
   (let [all-coords (all-coords-with-neighbours width height)]
     (loop [hm (init-positions (init-vec-2d width height 0) coords)
            r rounds]
       (if (= r 0) 
         hm
-        (recur (improved-round hm all-coords) (dec r)))))
-  "done")
+        (recur (round hm all-coords) (dec r))))))
 
 (def coords
   [[1 1]
    [3 3]
-   [8 8]])
-; 
-; (defn normalize-hm
-;   [img]
-;   (let [min-v (min img)
-;         max-v (max img)]
-;     (map #(/ (- % min-v) (- max-v min-v)) img)))
-;     
-; (def hm-img (new-image 200 200))
-; 
-; (def hm-pixels (get-pixels hm-img))
-; 
-; (for [i (range 0 (count hm-pixels))]
-;   (aset hm-pixels i (rgb (nth normalized-img i) 0 0)))
-; 
-; (set-pixels hm-img hm-pixels)
-; 
-; (show hm-img :zoom 2.0 :title "Isn't it beautiful?")
+   [8 8]
+   [30 50]
+   [35 45]
+   [30 55]
+   [30 50]
+   [20 70]])
 
+(defn normalize-seq
+ [seq]
+ (let [min-v (apply min seq)
+       max-v (apply max seq)]
+   (map #(/ (- % min-v) (- max-v min-v)) seq)))
+
+(def rand-coords (partition 2 (take 500 (repeatedly #(rand-int 100)))))
+
+(def my-heat-map-vec (head-map-vec 100 100 rand-coords 1))
+
+(def my-flat-heat-map-vec (flatten my-heat-map-vec))
+
+(def normalized-hm-vec (normalize-seq my-flat-heat-map-vec))
+
+(def hm-img (new-image 100 100))
+ 
+(def hm-pixels (get-pixels hm-img))
+ 
+(for [i (range 0 (count normalized-hm-vec))]
+  (aset hm-pixels i (heatmap (nth normalized-hm-vec i))))
+ 
+(set-pixels hm-img hm-pixels)
+ 
+(show hm-img :zoom 3.0 :title "Isn't it beautiful?")
 
 ; (defn test-hm-creation
 ;   [width height coords rounds]
