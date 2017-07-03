@@ -11,14 +11,13 @@
 (def db (mongo/get-db conn "ux-analyzer-db"))
 
 (def Click-data-schema
-  {
-    :app-id s/Str
-    :click {:x s/Int
-            :y s/Int}
-    :screen {:width s/Int
-             :height s/Int}
-    :timestamp s/Str
-    :url s/Str})
+  {:app-id s/Str
+   :click {:x s/Int
+           :y s/Int}
+   :screen {:width s/Int
+            :height s/Int}
+   :timestamp s/Str
+   :url s/Str})
 
 (def models
   {:click-data {:name "click-data"
@@ -26,6 +25,7 @@
 
 (defn insert
   [model-key data]
+
   (if-let [model (get-in models [model-key :name])]
     (let [validate (get-in models [model-key :validator])]
       (when (validate data)

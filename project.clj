@@ -23,7 +23,8 @@
                  [clj-json "0.5.3"]
                  [proto-repl "0.3.1"]
                  [com.novemberain/monger "3.1.0"]
-                 [prismatic/schema "1.1.6"]]
+                 [prismatic/schema "1.1.6"]
+                 [net.mikera/imagez "0.12.0"]]
 
   :plugins [[lein-environ "1.0.2"]
             [lein-cljsbuild "1.1.5"]
