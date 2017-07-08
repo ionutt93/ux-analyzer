@@ -1,9 +1,12 @@
 (ns ux-analyzer.heat-map
   (:use [mikera.image.core]
         [mikera.image.colours]
-        [mikera.image.spectrum])
+        [mikera.image.spectrum]
+        [clojure.java.shell :only [sh]])
   (:import [Math])
   (:require [clojure.core.reducers :as r]))
+            
+     
 
 (defn init-vec-2d
   "Creates a 2d vector with given size, populated with give value"
@@ -44,7 +47,6 @@
           hm
           all-coords))
 
-
 (defn head-map-vec
   [width height coords rounds]
   (let [all-coords (all-coords-with-neighbours width height)]
@@ -54,52 +56,19 @@
         hm
         (recur (round hm all-coords) (dec r))))))
 
-(def coords
-  [[1 1]
-   [3 3]
-   [8 8]
-   [30 50]
-   [35 45]
-   [30 55]
-   [30 50]
-   [20 70]])
-
 (defn normalize-seq
  [seq]
  (let [min-v (apply min seq)
        max-v (apply max seq)]
    (map #(/ (- % min-v) (- max-v min-v)) seq)))
 
-(def rand-coords (partition 2 (take 500 (repeatedly #(rand-int 100)))))
-
-(def my-heat-map-vec (head-map-vec 100 100 rand-coords 1))
-
-(def my-flat-heat-map-vec (flatten my-heat-map-vec))
-
-(def normalized-hm-vec (normalize-seq my-flat-heat-map-vec))
-
-(def hm-img (new-image 100 100))
- 
-(def hm-pixels (get-pixels hm-img))
- 
-(for [i (range 0 (count normalized-hm-vec))]
-  (aset hm-pixels i (heatmap (nth normalized-hm-vec i))))
- 
-(set-pixels hm-img hm-pixels)
- 
-(show hm-img :zoom 3.0 :title "Isn't it beautiful?")
-
-; (defn test-hm-creation
-;   [width height coords rounds]
-;   (def hm-img (new-image width height))
-;   (def pixels (get-pixels hm-img))
-;   (let [hm (my-heat-map width height coords rounds)
-;         normalized-hm (normalize-hm hm)]    
-;     (for [i (range 0 (* width height))]
-;       (aset pixels i (rgb 0 0 0)))
-;     (set-pixels hm-img pixels)
-;     hm-img))
-;   
-; (show (test-hm-creation 10 10 coords 1) :zoom 2.0 :title "HM")
-
-
+(defn render-website
+  ([url] 
+   (render-website url (str url ".png")))
+  ([url out]
+   (let [fout (str "resources/rendered_pages/" 
+                   (-> out (clojure.string/replace #"https://" "")
+                           (clojure.string/replace #"http://" "")
+                           (clojure.string/replace #"/" ":")))]
+    (sh "phantomjs" "src/js/render_website.js" url fout))))
+        
