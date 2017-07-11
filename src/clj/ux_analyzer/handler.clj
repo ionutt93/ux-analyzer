@@ -5,7 +5,12 @@
             [ux-analyzer.middleware :refer [wrap-middleware]]
             [config.core :refer [env]]
             [clj-json [core :as json]]
-            [ux-analyzer.db-core :as db])
+            [ux-analyzer.db-core :as db]
+            [ux-analyzer.heat-map :as hm]
+            [clojure.java.io :as io]
+            
+            [ring.util.response :as response]
+            [ring.util.mime-type :as mimes])
   (:import [org.bson.types ObjectId]))
 
 (def mount-target
@@ -52,13 +57,7 @@
        {:status 200})
       {:status 500 :body "Could not find matching url registered"})))
                               
-
-(defn get-click-data-for-app
-  [app-id]
-  (db/retrieve :click
-   {:app-id (ObjectId. app-id)}))
-
-(defn get-click-data-for-app&url
+(defn get-click-data
   [app-id url-id]
   (db/retrieve :click
    {:app-id (ObjectId. app-id)
@@ -78,7 +77,19 @@
              :url (:url params)}]
    (when (db/update :app app-id :push {:urls (db/wrap-entry url)})
      {:status 200})))
+
+(defn get-rendered-page
+  [app-id url-id]
+  (let [app (db/get-by-id :app app-id)
+        url (first (filter #(= (str (:_id %)) url-id) (:urls app)))
+        location (hm/render-website (:url url))]
+   (-> (response/resource-response location)
+       (response/content-type (mimes/default-mime-types "png")))))
+    
    
+   
+    
+
 (defroutes routes
   (GET "/" [] (loading-page))
   (GET "/about" [] (loading-page))
@@ -90,16 +101,13 @@
   (POST "/apps/:app-id/urls" [app-id :as req] (register-url app-id req))
   ; TODO Get all user content: apps, urls  (low priority)
   (GET "/users/:user-id/apps" [] "Not implemented yet")
-  ; TODO Get all click data for an application irrespective of it's url
-  (GET "/apps/:app-id/click-data" [app-id :as req] (get-click-data-for-app app-id req))
-  (POST "/apps/:app-id/click-data" [app-id :as req] (post-click-data app-id req))  
-  ; TODO Get all click data for an application and specific url
-  (GET "/apps/:app-id/urls/:url-id/click_data/" [] "Not implemented yet")
-  (GET "/apps/:app-id/urls/click_data/" [] "Not implemented yet")
+  ; TODO Get all click data for an application and url
+  (GET "/apps/:app-id/urls/:url-id/click-data" [app-id url-id] (get-click-data app-id url-id))
+  (POST "/apps/:app-id/click-data" [app-id :as req] (post-click-data app-id req))
   ; TODO Get rendering of website at specified url
-  (GET "/apps/:app-id/urls/:url-id/rendered_page/" [] "Not implemented yet")
+  (GET "/apps/:app-id/urls/:url-id/rendered_page/" [app-id url-id] (get-rendered-page app-id url-id))
   ; TODO Get heatmap of website at specified url (optional: user can choose timespan)
-  (GET "/apps/:app-id/urls/:url-id/rendered_page/" [] "Not implemented yet")
+  (GET "/apps/:app-id/urls/:url-id/heat_map/" [] "Not implemented yet")
   
   (resources "/")
   (not-found "Not Found yet"))

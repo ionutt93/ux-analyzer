@@ -5,8 +5,6 @@
         [clojure.java.shell :only [sh]])
   (:import [Math])
   (:require [clojure.core.reducers :as r]))
-            
-     
 
 (defn init-vec-2d
   "Creates a 2d vector with given size, populated with give value"
@@ -66,9 +64,11 @@
   ([url] 
    (render-website url (str url ".png")))
   ([url out]
-   (let [fout (str "resources/rendered_pages/" 
+   (let [fout (str "rendered_pages/" 
                    (-> out (clojure.string/replace #"https://" "")
                            (clojure.string/replace #"http://" "")
                            (clojure.string/replace #"/" ":")))]
-    (sh "phantomjs" "src/js/render_website.js" url fout))))
-        
+     (prn "Rendered page location " fout)
+     (sh "phantomjs" "src/js/render_website.js" url (str "resources/ "fout))
+     fout)))
+
