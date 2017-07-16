@@ -101,10 +101,8 @@
   (POST "/apps/:app-id/urls" [app-id :as req] (register-url app-id req))
   ; TODO Get all user content: apps, urls  (low priority)
   (GET "/users/:user-id/apps" [] "Not implemented yet")
-  ; TODO Get all click data for an application and url
   (GET "/apps/:app-id/urls/:url-id/click-data" [app-id url-id] (get-click-data app-id url-id))
   (POST "/apps/:app-id/click-data" [app-id :as req] (post-click-data app-id req))
-  ; TODO Get rendering of website at specified url
   (GET "/apps/:app-id/urls/:url-id/rendered_page/" [app-id url-id] (get-rendered-page app-id url-id))
   ; TODO Get heatmap of website at specified url (optional: user can choose timespan)
   (GET "/apps/:app-id/urls/:url-id/heat_map/" [] "Not implemented yet")

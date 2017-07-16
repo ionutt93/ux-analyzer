@@ -4,7 +4,9 @@
         [mikera.image.spectrum]
         [clojure.java.shell :only [sh]])
   (:import [Math])
-  (:require [clojure.core.reducers :as r]))
+  (:require [clojure.core.reducers :as r]
+            [clojure.pprint :as pp]))
+
 
 (defn init-vec-2d
   "Creates a 2d vector with given size, populated with give value"
@@ -45,7 +47,7 @@
           hm
           all-coords))
 
-(defn head-map-vec
+(defn heat-map-vec
   [width height coords rounds]
   (let [all-coords (all-coords-with-neighbours width height)]
     (loop [hm (init-positions (init-vec-2d width height 0) coords)
@@ -61,6 +63,7 @@
    (map #(/ (- % min-v) (- max-v min-v)) seq)))
 
 (defn render-website
+  "Renders an image of the url and saves it locally"
   ([url] 
    (render-website url (str url ".png")))
   ([url out]
@@ -71,4 +74,76 @@
      (prn "Rendered page location " fout)
      (sh "phantomjs" "src/js/render_website.js" url (str "resources/ "fout))
      fout)))
+
+(defn render-heatmap
+  "Renders a heatmap on top of the website rendering for clicks coming from specified url"
+  [rendering-location clicks]
+  (let [rendering (load-image-resource rendering-location)
+        heatmap (heat-map-vec (width rendering) (height rendering) clicks 1)]
+   [heatmap]))
+
+(let [clicks [{:click {:x 102 :y 302}
+               :screen {:width 500 :height 1000}}
+              {:click {:y 302 :z 201}
+               :screen {:width 500 :height 1000}}]]
+ (render-heatmap "rendered_pages/atom.io:.png" clicks))
+
+; NOTE x goes right as it increases
+; NOTE y goes down as it increases
+
+(defn gaussian
+ [x k]
+ (Math/exp (/ (- (* x x)) k)))
+
+(defn dist
+  [x1 y1 x2 y2]
+  (Math/sqrt (+ (* (- x1 x2)
+                   (- x1 x2))
+                (* (- y1 y2)
+                   (- y1 y2)))))
+
+(defn mark-area
+ [matrix [y x] dot-size]
+ (let [coords (for [yy (range (- y dot-size)
+                              (+ y dot-size))
+                    xx (range (- x dot-size)
+                              (+ x dot-size))
+                    :when (and (>= xx 0) (>= yy 0) 
+                               (< xx (count (first matrix)))
+                               (< yy (count matrix)))]
+                [yy xx])]
+   (reduce (fn [m [yy xx]] 
+             (update-in m [yy xx] inc))
+           matrix
+           coords)))
+                    
+(defn heatmap-quick
+ [coords width height dot-size]
+ (let [hm (init-vec-2d width height 0)]
+  (reduce #(mark-area %1 %2 dot-size) hm coords)))
+
+(defn generate-random-clicks
+  [w count]
+  (partition 2 (take count (repeatedly #(rand-int w)))))
+
+(defn save-hm
+  [hm]
+  (let [w (count (first hm))
+        h (count hm)
+        hm-image (new-image w h)
+        pixels (get-pixels hm-image)]
+    (map-indexed (fn [i v] (aset pixels i (heatmap v))) 
+                 (normalize-seq (flatten hm)))
+    (set-pixels hm-image pixels)
+    (clojure.java.io/make-parents (str (System/getProperty "user.dir")
+                                       "/rendered-heatmaps/test.png"))
+    (save hm-image 
+          (str (System/getProperty "user.dir")
+               "/rendered-heatmaps/test.png"))))
+          
+          
+
+(-> (generate-random-clicks 100 20)
+    (heatmap-quick 100 100 4)
+    (save-hm))
 
