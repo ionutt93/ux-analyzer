@@ -5,9 +5,13 @@
            [mikera.image.filters :as img-filters]
            [mikera.image.protocols :as img-protocols]
            [clojure.java.io :refer [resource]]
+           [ux-analyzer.web-page-rendering :as web]
+           [ux-analyzer.image-utils :as img-utils]
   :use [mikera.image.protocols]))
-          
-(defn init-heat-map
+
+(def default-ext-hm "png")
+
+(defn- init-heat-map
   [width height]
   {:points {}
    :width width
@@ -15,7 +19,7 @@
    :max-val 0})
 
 
-(defn update-in-hm
+(defn- update-in-hm
   [hm [y x] fnc]
   (let [v (get-in hm [:points y x] 0)
         max-val (:max-val hm)]
@@ -23,7 +27,7 @@
        (assoc :max-val (max max-val (fnc v))))))
 
 
-(defn dist
+(defn- dist
   [x1 y1 x2 y2]
   (Math/sqrt (+ (* (- x1 x2)
                    (- x1 x2))
@@ -31,7 +35,7 @@
                    (- y1 y2)))))
 
 
-(defn area
+(defn- area
   [[cy cx] radius width height]
   (let [min-y (max (- cy radius) 0)
         min-x (max (- cx radius) 0)
@@ -54,14 +58,20 @@
   [v max]
   (/ v max))
 
+(defn preprocess-coords
+  [coords]
+  (map #(let [y (get-in % [:click :y])
+              x (get-in % [:click :x])]
+          [y x])
+       coords))
 
 (defn populate-hm
   [hm coords radius]
   (->> coords
+       (preprocess-coords)
        (map #(area % radius (:width hm) (:height hm)))
        (reduce into)
        (reduce #(update-in-hm %1 %2 inc) hm)))
-
 
 (defn populate-img
   [hm]
@@ -80,47 +90,22 @@
       (populate-hm coords 25)
       (populate-img)))
 
+
+(defn out-path-hm
+  ([url-id] (out-path-hm url-id default-ext-hm))
+  ([url-id ext] (str "rendered_heatmaps/" url-id "." ext)))
+
+(defn render-hm
+  ([coords url-id]
+   (let [web-out (web/out-path-web url-id)
+         page-img (img-core/load-image-resource web-out)]
+    (if (not (nil? page-img))
+      (render-hm coords url-id page-img)
+      [nil "Did not find web page"])))
+  ([coords url-id page-img]
+   (let [hm-img (create-heatmap-img coords 
+                                    (img-core/width page-img) 
+                                    (img-core/height page-img))
+         blend-img (img-utils/blend-images page-img hm-img 0.3)]
+     (img-core/save blend-img (str "resources/" (out-path-hm url-id))))))
 ; (img-core/show (create-heatmap-img (generate-random-clicks 900 9000) 1440 900) :zoom 1)
-
-(defn- blend
-  [bg-c bg-a fg-c fg-a alpha]
-  (+ (* fg-c (/ fg-a alpha))
-     (* bg-c bg-a (/ (- 1 fg-a) alpha))))
-
-
-(defn blend-colours
-  [bg fg fg-a]
-  (let [bg-a 1.0
-        [bg-r bg-g bg-b] (img-colours/values-rgb bg)
-        [fg-r fg-g fg-b] (img-colours/values-rgb fg)
-        alpha (- 1 (* (- 1 fg-a)
-                      (- 1 bg-a)))
-        red (blend bg-r bg-a fg-r fg-a alpha)
-        green (blend bg-g bg-a fg-g fg-a alpha)
-        blue (blend bg-b bg-a fg-b fg-a alpha)]
-   (img-colours/rgb red green blue)))
-
-
-(defn blend-images
-  [bg-img fg-img alpha]
-  (let [blend-img (img-core/new-image (img-core/width bg-img)
-                                      (img-core/height bg-img))]
-   (doall (for [y (range (img-core/height blend-img))
-                x (range (img-core/width blend-img))]
-            (let [bg-px (img-core/get-pixel bg-img x y)
-                  fg-px (img-core/get-pixel fg-img x y)
-                  blend-px (blend-colours bg-px fg-px alpha)]
-              (img-core/set-pixel blend-img x y blend-px))))
-   blend-img))
-
-; (let [bg-img (img-core/load-image-resource "rendered_pages/monkey.jpg")
-;       fg-img (create-heatmap-img (generate-random-clicks (img-core/width bg-img)
-;                                                          (img-core/height bg-img)
-;                                                          1000)
-;                                  (img-core/width bg-img)
-;                                  (img-core/height bg-img))
-;       blended-image (blend-images bg-img fg-img 0.7)]
-;   (show blended-image :title "Blended image"))
-;                                         
-
-

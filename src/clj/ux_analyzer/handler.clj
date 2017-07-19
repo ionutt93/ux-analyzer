@@ -6,9 +6,9 @@
             [config.core :refer [env]]
             [clj-json [core :as json]]
             [ux-analyzer.db-core :as db]
-            [ux-analyzer.heat-map :as hm]
+            [ux-analyzer.web-page-rendering :as web]
+            [ux-analyzer.heatmap-improved :as hm]
             [clojure.java.io :as io]
-            
             [ring.util.response :as response]
             [ring.util.mime-type :as mimes])
   (:import [org.bson.types ObjectId]))
@@ -78,18 +78,28 @@
    (when (db/update :app app-id :push {:urls (db/wrap-entry url)})
      {:status 200})))
 
+(defn first-matching-id
+  [id array]
+  (first (filter #(= (str (:_id %)) id) array)))
+
 (defn get-rendered-page
   [app-id url-id]
   (let [app (db/get-by-id :app app-id)
-        url (first (filter #(= (str (:_id %)) url-id) (:urls app)))
-        location (hm/render-website (:url url))]
-   (-> (response/resource-response location)
-       (response/content-type (mimes/default-mime-types "png")))))
+        url-entry (first-matching-id url-id (:urls app))]
+   (prn (web/render-page (:url url-entry) url-id))
+   (-> (response/resource-response (web/out-path-web url-id))
+       (response/content-type (mimes/default-mime-types web/default-ext-web)))))
     
-   
-   
-    
+(defn get-rendered-hm
+  [app-id url-id]
+  (let [app (db/get-by-id :app app-id)
+        url (first-matching-id url-id (:urls app))
+        coords (db/retrieve :click {:url-id (ObjectId. url-id)})]
+   (prn (hm/render-hm coords url-id))
+   (-> (response/resource-response (hm/out-path-hm url-id))
+       (response/content-type (mimes/default-mime-types hm/default-ext-hm)))))
 
+    
 (defroutes routes
   (GET "/" [] (loading-page))
   (GET "/about" [] (loading-page))
@@ -105,7 +115,7 @@
   (POST "/apps/:app-id/click-data" [app-id :as req] (post-click-data app-id req))
   (GET "/apps/:app-id/urls/:url-id/rendered_page/" [app-id url-id] (get-rendered-page app-id url-id))
   ; TODO Get heatmap of website at specified url (optional: user can choose timespan)
-  (GET "/apps/:app-id/urls/:url-id/heat_map/" [] "Not implemented yet")
+  (GET "/apps/:app-id/urls/:url-id/heat_map/" [app-id url-id] (get-rendered-hm app-id url-id))
   
   (resources "/")
   (not-found "Not Found yet"))
