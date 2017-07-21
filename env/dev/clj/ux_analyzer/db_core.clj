@@ -5,8 +5,7 @@
     [monger.conversion :refer [from-db-object]]
     [monger.operators :refer :all]
     [monger.result :refer [acknowledged?]]
-    [schema.core :as s]
-    [proto-repl.saved-values :as pr])
+    [schema.core :as s])
   (:import [org.bson.types ObjectId]
            [java.util Date]))
 
@@ -91,47 +90,3 @@
                                      (wrap-operator operator payload)))
    [nil "Invalid model used"]))
  
-
-; 
-; (let [app (first (retrieve :app))
-;       id (str (:_id app))]
-;   (update :app id :push {:urls {:name "home"
-;                                 :url "main/home"}}))
-; 
-; (insert :app {:name "test-app"
-;               :device-type :desktop
-;               :urls []})
-
-; ; User schema
-; {:id
-;  :username "johna"
-;  :password "pass123"}
-;   
-; ; App schema
-; {:id
-;  :user-id
-;  :name "news"
-;  :device-type :desktop|:mobile
-;  :urls [{:id
-;          :name "home"
-;          :url "news/home"}
-;         {:id
-;          :name "about"
-;          :url "news/about"}]}
-; 
-; ; Click data schema
-; {:id
-;  :app-id
-;  :url-id
-;  :page {:width 1440
-;         :height 900}
-;  :click {:x 20
-;          :y 100}
-;  :timestamp}
-
-; TODO location of page render
-; /resources/rendered_pages/app-id/url-id.png
-
-; TODO location of page heatmaps
-; /resource/heatmaps/app-id/url-id.png
-

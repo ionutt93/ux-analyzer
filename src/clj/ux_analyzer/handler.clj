@@ -7,7 +7,7 @@
             [clj-json [core :as json]]
             [ux-analyzer.db-core :as db]
             [ux-analyzer.web-page-rendering :as web]
-            [ux-analyzer.heatmap-improved :as hm]
+            [ux-analyzer.heatmap-service :as hm]
             [clojure.java.io :as io]
             [ring.util.response :as response]
             [ring.util.mime-type :as mimes])
@@ -114,7 +114,6 @@
   (GET "/apps/:app-id/urls/:url-id/click-data" [app-id url-id] (get-click-data app-id url-id))
   (POST "/apps/:app-id/click-data" [app-id :as req] (post-click-data app-id req))
   (GET "/apps/:app-id/urls/:url-id/rendered_page/" [app-id url-id] (get-rendered-page app-id url-id))
-  ; TODO Get heatmap of website at specified url (optional: user can choose timespan)
   (GET "/apps/:app-id/urls/:url-id/heat_map/" [app-id url-id] (get-rendered-hm app-id url-id))
   
   (resources "/")

@@ -1,4 +1,4 @@
-(ns ux-analyzer.heatmap-improved
+(ns ux-analyzer.heatmap-services
  (:require [mikera.image.core :as img-core]
            [mikera.image.colours :as img-colours]
            [mikera.image.spectrum :as img-spectrum]

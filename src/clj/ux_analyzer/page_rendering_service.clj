@@ -1,4 +1,4 @@
-(ns ux-analyzer.web-page-rendering
+(ns ux-analyzer.page-rendering-service
  (:require [clojure.java.shell :refer [sh]]))
 
 (def default-ext-web "png")
